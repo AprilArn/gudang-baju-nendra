@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="page-title">Etalase Atasan New</h1>   <!-- JUDUL: perlu diubah setiap page -->
+        <h1 class="page-title">Etalase Dress New</h1>   <!-- JUDUL: perlu diubah setiap page -->
 
         <?php
         // Konfigurasi koneksi database
@@ -95,7 +95,7 @@
                 JOIN 
                     kategori ON produk.id_kategori = kategori.id_kategori
                 WHERE
-                    kategori.nama_kategori = 'Atasan' -- < Perlu di Ubah >
+                    kategori.nama_kategori = 'Dress' -- < Perlu di Ubah >
                 AND
                     jenis.nama_jenis = 'Thrift'";
 
@@ -128,7 +128,7 @@
             echo "</tbody>";
             echo "</table>";
         } else {
-            echo "<p>Tidak ada data produk untuk kategori Atasan dan jenis Thrift.</p>";
+            echo "<p>Tidak ada data produk untuk kategori Dress dan jenis Thrift.</p>";
         }
 
         // Menutup koneksi
