@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="page-title">Etalase Jaket New</h1>   <!-- JUDUL: perlu diubah setiap page -->
+        <h1 class="page-title">Etalase Jaket Thrift</h1>   <!-- JUDUL: perlu diubah setiap page -->
 
         <?php
         // Konfigurasi koneksi database
@@ -136,7 +136,7 @@
         ?>
 
         <!-- Tombol Kembali -->
-        <a href="../../product_new.php" class="back-button">Kembali</a>   <!-- Perlu diubah di setiap Jenis New/Thrift -->
+        <a href="../../product_thrift.php" class="back-button">Kembali</a>   <!-- Perlu diubah di setiap Jenis New/Thrift -->
     </div>
 </body>
 </html>
