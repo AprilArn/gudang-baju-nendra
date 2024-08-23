@@ -29,38 +29,80 @@
         if (isset($_GET['restore_id'])) {
             $restore_id = $_GET['restore_id'];
 
-            // Query untuk mendapatkan data produk dari tabel sold
-            $select_sql = "SELECT id_produk, id_jenis, id_kategori, nama_produk, harga_produk, link_ig
-                           FROM sold
-                           WHERE id_produk = ?";
-            $stmt = $conn->prepare($select_sql);
-            $stmt->bind_param("s", $restore_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            // Mulai transaksi
+            $conn->begin_transaction();
 
-            if ($result->num_rows > 0) {
-                $row = $result->fetch_assoc();
+            try {
+                // Query untuk mendapatkan data produk dari tabel sold
+                $select_sql = "SELECT id_produk, id_jenis, id_kategori, nama_produk, harga_produk, link_ig
+                               FROM sold
+                               WHERE id_produk = ?";
+                $stmt = $conn->prepare($select_sql);
+                $stmt->bind_param("s", $restore_id);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-                // Masukkan data ke tabel produk
-                $insert_sql = "INSERT INTO produk (id_produk, id_jenis, id_kategori, nama_produk, harga_produk, link_ig) 
-                               VALUES (?, ?, ?, ?, ?, ?)";
-                $stmt = $conn->prepare($insert_sql);
-                $stmt->bind_param("ssssis", $row['id_produk'], $row['id_jenis'], $row['id_kategori'], 
-                                  $row['nama_produk'], $row['harga_produk'], $row['link_ig']);
+                if ($result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
 
-                if ($stmt->execute()) {
-                    echo "<p>Produk berhasil dikembalikan ke tabel produk.</p>";
+                    // Masukkan data ke tabel produk
+                    $insert_sql = "INSERT INTO produk (id_produk, id_jenis, id_kategori, nama_produk, harga_produk, link_ig) 
+                                   VALUES (?, ?, ?, ?, ?, ?)";
+                    $stmt = $conn->prepare($insert_sql);
+                    $stmt->bind_param("ssssis", $row['id_produk'], $row['id_jenis'], $row['id_kategori'], 
+                                      $row['nama_produk'], $row['harga_produk'], $row['link_ig']);
 
-                    // Hapus produk dari tabel sold
-                    $delete_sql = "DELETE FROM sold WHERE id_produk = ?";
-                    $stmt = $conn->prepare($delete_sql);
-                    $stmt->bind_param("s", $restore_id);
-                    $stmt->execute();
+                    if ($stmt->execute()) {
+                        // Hapus produk dari tabel sold
+                        $delete_sql = "DELETE FROM sold WHERE id_produk = ?";
+                        $stmt = $conn->prepare($delete_sql);
+                        $stmt->bind_param("s", $restore_id);
+
+                        if ($stmt->execute()) {
+                            // Hapus ID dari tabel produk_terhapus
+                            $delete_terhapus_sql = "DELETE FROM produk_terhapus WHERE id_produk = ?";
+                            $stmt = $conn->prepare($delete_terhapus_sql);
+                            $stmt->bind_param("s", $restore_id);
+                            $stmt->execute(); // Eksekusi penghapusan dari produk_terhapus
+
+                            // Jika semua berhasil, commit transaksi
+                            $conn->commit();
+                            echo "<p>Produk berhasil dikembalikan ke tabel produk dan dihapus dari tabel produk_terhapus.</p>";
+                        } else {
+                            // Jika penghapusan dari tabel sold gagal, batalkan transaksi
+                            $conn->rollback();
+                            echo "<p>Error DELETE: " . $stmt->error . "</p>";
+                        }
+                    } else {
+                        // Jika insert gagal, batalkan transaksi
+                        $conn->rollback();
+                        echo "<p>Error INSERT: " . $stmt->error . "</p>";
+                    }
                 } else {
-                    echo "<p>Error INSERT: " . $stmt->error . "</p>";
+                    echo "<p>Produk tidak ditemukan.</p>";
                 }
+
+                $stmt->close();
+            } catch (Exception $e) {
+                // Jika ada kesalahan lain, batalkan transaksi
+                $conn->rollback();
+                echo "<p>Error: " . $e->getMessage() . "</p>";
+            }
+        }
+
+        // Cek apakah ada permintaan delete
+        if (isset($_GET['delete_id'])) {
+            $delete_id = $_GET['delete_id'];
+
+            // Hapus produk dari tabel sold
+            $delete_sql = "DELETE FROM sold WHERE id_produk = ?";
+            $stmt = $conn->prepare($delete_sql);
+            $stmt->bind_param("s", $delete_id);
+
+            if ($stmt->execute()) {
+                echo "<p>Produk berhasil dihapus dari tabel sold.</p>";
             } else {
-                echo "<p>Produk tidak ditemukan.</p>";
+                echo "<p>Error DELETE: " . $stmt->error . "</p>";
             }
 
             $stmt->close();
@@ -97,6 +139,7 @@
                 echo "<td><a href='" . htmlspecialchars($row['Link']) . "' target='_blank'>Lihat produk</a></td>";
                 echo "<td>
                         <a href='?restore_id=" . htmlspecialchars($row['Kode']) . "' class='restore-button' onclick='return confirm(\"Anda yakin ingin mengembalikan produk ini ke tabel produk?\")'>Restore</a>
+                        <a href='?delete_id=" . htmlspecialchars($row['Kode']) . "' class='delete-button' onclick='return confirm(\"Anda yakin ingin menghapus produk ini dari tabel sold?\")'>Hapus</a>
                       </td>";
                 echo "</tr>";
             }
